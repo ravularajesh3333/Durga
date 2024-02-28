@@ -1,0 +1,44 @@
+pipeline {
+    agent any
+    environment {
+        GIT_REPO_URL = 'https://github.com/ravularajesh3333/Durga.git'
+        GIT_CREDENTIALS_ID = 'git-id'
+    }
+    
+    // Define repository variable at the outermost scope
+    def repository 
+
+    stages {
+        stage('Git clone') {
+            steps {
+                script {
+                    // Move the definition of repository variable here
+                    repository = sh(script: "git clone ${env.GIT_REPO_URL}", returnStdout: true).trim()
+                    echo "Repository cloned at: ${repository}"
+                }
+            }
+        }
+        stage('Docker image') {
+            steps {
+                script {
+                    sh 'docker images'
+                    sh 'docker build -t durga .'
+                    sh 'docker images'
+
+                    sh 'docker volume ls'
+                    sh 'docker volume create durga-volume'
+                    sh 'docker volume ls'
+
+                    sh 'docker run -d --name durga-cont -p 8081:27017 -v durga-volume:/app durga'
+                }
+            }
+        }
+        stage('Docker container') {
+            steps {
+                script {
+                    sh "docker cp ${repository} durga-cont:/root/"
+                }
+            }
+        }
+    }
+}
